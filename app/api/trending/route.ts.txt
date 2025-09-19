@@ -1,0 +1,28 @@
+// app/api/trending/route.ts
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic"; // всегда свежо
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const region = searchParams.get("region") || "RU";
+  const pageToken = searchParams.get("pageToken") || "";
+
+  const key = process.env.YT_API_KEY;
+  if (!key) {
+    return NextResponse.json({ error: "Server YT_API_KEY is missing" }, { status: 500 });
+  }
+
+  const qs = new URLSearchParams({
+    part: "snippet,statistics,contentDetails",
+    chart: "mostPopular",
+    regionCode: region,
+    maxResults: "50",
+    key,
+  });
+  if (pageToken) qs.set("pageToken", pageToken);
+
+  const res = await fetch("https://www.googleapis.com/youtube/v3/videos?" + qs.toString());
+  const data = await res.json();
+  return NextResponse.json(data, { status: res.ok ? 200 : 500 });
+}
